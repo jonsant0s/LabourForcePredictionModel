@@ -1,0 +1,142 @@
+---
+title: "STAT 429 Report"
+author: "Andrew, Joseph, Jonathan"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+df <- read.csv("PSID1976.csv")
+
+df$participation[df$participation=="no"]<-0
+df$participation[df$participation=="yes"]<-1
+df$city[df$city=="no"]<-0
+df$city[df$city=="yes"]<-1
+df$college[df$college=="no"]<-0
+df$college[df$college=="yes"]<-1
+df$hcollege[df$hcollege=="no"]<-0
+df$hcollege[df$hcollege=="yes"]<-1
+
+df<-transform(df, participation = as.integer(participation),city = as.integer(city), college= as.integer(college), hcollege=as.integer(hcollege))
+df
+```
+
+```{r (range of each variable)}
+
+nrow(df)
+ncol(df)
+range(df$participation)
+range(df$youngkids)
+range(df$oldkids)
+range(df$age)
+range(df$education)
+range(df$hhours)
+range(df$hage)
+range(df$heducation)
+range(df$hwage)
+range(df$fincome)
+range(df$tax)
+range(df$meducation)
+range(df$feducation)
+range(df$unemp)
+range(df$city)
+range(df$experience)
+range(df$college)
+range(df$hcollege)
+```
+
+```{r (m2)}
+library(car)
+m1<-glm(df$participation~youngkids+oldkids+age+education+hhours+hage+heducation+hwage+fincome+tax+meducation+feducation+unemp+experience+city+college+hcollege, family="binomial",data=df)
+summary(m1)
+```
+
+```{r (Marginal model plots of m1)}
+par(mfrow=c(2,2))
+mmp(m1, df$youngkids)
+mmp(m1, df$oldkids)
+mmp(m1, df$age)
+mmp(m1, df$education)
+mmp(m1, df$hhours)
+mmp(m1, df$hage)
+mmp(m1, df$heducation)
+mmp(m1, df$hwage)
+mmp(m1, df$fincome)
+mmp(m1, df$tax)
+mmp(m1, df$meducation)
+mmp(m1, df$feducation)
+mmp(m1, df$unemp)
+mmp(m1, df$experience)
+mmp(m1, df$city)
+mmp(m1, df$college)
+mmp(m1, df$hcollege)
+```
+
+```{r (Backward BIC Elim. on m1)}
+backwardBIC=step(m1, direction = "backward", k=log(n))
+```
+
+```{r (m2)}
+m2 <- glm(df$participation~oldkids+education+hhours+youngkids+age+hwage+tax+experience, family="binomial",data=df)
+summary(m2)
+```
+
+```{r (Marginal model plots of m2)}
+par(mfrow=c(2,2))
+mmp(m1, df$oldkids)
+mmp(m1, df$education)
+mmp(m1, df$hhours)
+mmp(m1, df$youngkids)
+mmp(m1, df$age)
+mmp(m1, df$hwage)
+mmp(m1, df$tax)
+mmp(m1, df$experience)
+```
+
+```{r (vif)}
+vif(m1)
+""
+vif(m2)
+```
+
+```{r (anova)}
+anova(m1,m2, test="Chisq")
+```
+
+```{r (logit and odds)}
+## Mean of each predictor variable in m2
+x<-c(1, mean(df$oldkids), mean(df$education), mean(df$hhours), mean(df$youngkids), mean(df$age), mean(df$hwage), mean(df$tax), mean(df$experience))
+
+## Probability of success
+p<-exp(sum(coef(m2)*x))/(1+exp(sum(coef(m2)*x)))
+p
+
+## Calculation for logit using the probability of success
+logOdds<-log(p/(1-p))
+logOdds
+
+## Or
+## Another way to calculate logit
+AlsologOdds<-sum(coef(m2)*x)
+AlsologOdds
+
+##  if the number of years of the wife's previous labor market experience increased by 1 then the odds in favor for the wife to participate in the labor force in 1975 will change by a multiplicative factor of... 
+exp(m2$coefficients[9]) 
+```
+
+```{r (confint)}
+confint(m2)
+```
+
+```{r (pairs)}
+pairs(df$participation~oldkids+education+hhours+youngkids+age+hwage+tax+experience, data=df, lower.panel=NULL)
+```
+
+```{r (correlation)}
+z<-cbind(df$oldkids,df$ducation,df$hhours,df$youngkids,df$age,df$hwage,df$tax,df$experience)
+round(cor(z),5)
+```
